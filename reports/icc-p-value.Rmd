@@ -1,0 +1,64 @@
+---
+title: "Implementando ICs e p valor"
+author: "Raoni Smaneoto"
+output:
+  html_document:
+    theme: readable
+    df_print: paged
+    toc: yes
+  html_notebook:
+    fig_width: 7
+    theme: readable
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+theme_set(theme_bw())
+```
+
+## Os dados
+
+```{r}
+set.seed(12345)
+data = readr::read_csv2(here::here("data/campeonato-brasileiro-full.csv"))
+
+```
+
+## Com teste de hipótese
+
+```{r }
+data = data %>%
+  filter(Dia %in% c("Domingo", "Quarta-feira"))
+
+thet_emb = function(d) {
+  
+  a = d %>%
+    mutate(embaralhado = sample(Dia, n())) %>%
+    group_by(embaralhado) %>%
+    summarise(goals = mean(gols))
+  
+  sunday = a %>% filter(embaralhado == "Domingo") %>% pull(goals)
+  wednesday = a %>% filter(embaralhado == "Quarta-feira") %>% pull(goals)
+
+  sunday - wednesday
+}
+
+diffs = replicate(2000, {thet_emb(data)})
+
+theta_diff = function(d, i) {
+  goals = d %>%
+    slice(i) %>%
+    group_by(Dia) %>%
+    summarise(goals = mean(gols))
+
+  sunday = goals %>% filter(Dia == "Domingo") %>% pull(goals)
+  wednesday = goals %>% filter(Dia == "Quarta-feira") %>% pull(goals)
+
+  sunday - wednesday
+}
+
+sum(abs(diffs) >= abs(theta_diff(data, 1:NROW(data)))) / length(diffs)
+```
