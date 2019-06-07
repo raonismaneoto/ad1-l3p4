@@ -16,6 +16,11 @@ output:
 ```{r setup, include=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(boot)
+library(readr)
+library(here)
+library(broom)
+
 theme_set(theme_bw())
 ```
 
@@ -27,10 +32,11 @@ data = readr::read_csv2(here::here("data/campeonato-brasileiro-full.csv"))
 
 ```
 
-## Com teste de hipótese
+## Com teste de hipótese para a primeira pergunta
+Como o p-value foi muito alto podemos aceitar a hipótese nula que diz que não há diferença considerável entre o número de gols dos jogos nas quartas e o número de gols dos jogos aos domingos.
 
 ```{r }
-data = data %>%
+data1 = data %>%
   filter(Dia %in% c("Domingo", "Quarta-feira"))
 
 thet_emb = function(d) {
@@ -46,7 +52,7 @@ thet_emb = function(d) {
   sunday - wednesday
 }
 
-diffs = replicate(2000, {thet_emb(data)})
+diffs = replicate(2000, {thet_emb(data1)})
 
 theta_diff = function(d, i) {
   goals = d %>%
@@ -60,5 +66,76 @@ theta_diff = function(d, i) {
   sunday - wednesday
 }
 
-sum(abs(diffs) >= abs(theta_diff(data, 1:NROW(data)))) / length(diffs)
+sum(abs(diffs) >= abs(theta_diff(data1, 1:NROW(data1)))) / length(diffs)
+```
+
+
+## Com IC para a primeira pergunta
+
+O IC fica em torno do zero, indicando que não existe diferença entre o número de gols de jogos na quarta e no domingo.
+```{r }
+theta = function(data, i) {
+    agrupado = data %>% 
+        slice(i) %>% 
+        group_by(Dia) %>% 
+        summarise(gols = mean(gols))
+    
+    domingos = agrupado %>% filter(Dia == "Domingo") %>% pull(gols)
+    quartas = agrupado %>% filter(Dia == "Quarta-feira") %>% pull(gols)
+    domingos - quartas
+}
+
+result = boot(data = data1, statistic = theta, R = 2000) %>%
+    tidy(conf.level = .95, conf.method = "bca", conf.int = TRUE)
+result
+
+```
+
+## Com IC para a segunda pergunta
+Obtivemos um intervalo de confiança que não inclui o zero. Isso indica que há diferença entre as médias. Além disso, essa diferença se mostra positiva. Ou seja, com 95% de certeza podemos dizer que jogos com ganhador têm mais gols do que jogos empatados. O intervalo varia de 0.22 até 0.9
+```{r }
+foi_empate = function(col) {col == 'Empate'}
+
+data2 = data %>% mutate(Empate = foi_empate(`Vencedor Estado`))
+
+theta_diff2 = function(d, i) {
+    gols = d %>%
+        slice(i) %>% 
+        group_by(Empate) %>%
+        summarise(media_gols = mean(gols))
+    
+    media_gols_vitoriosos = gols %>% filter(Empate == FALSE) %>% pull(media_gols)
+    media_gols_empates = gols %>% filter(Empate == TRUE) %>% pull(media_gols)
+    
+    media_gols_vitoriosos - media_gols_empates
+}
+
+data2 %>% 
+    boot(statistic = theta_diff2, R = 4000) %>% 
+    tidy(conf.level = 0.95, 
+         conf.int = TRUE)
+
+
+```
+
+## Teste de hipótese para a segunda pergunta
+
+Obtivemos um p-value muito baixo. O que indica que não podemos aceitar a hipótese nula. Ou seja, há diferença significativa entre a média de gols de jogos que tiveram ganhador e jogos que não.
+```{r}
+theta_emb = function(d) {
+    gols = d %>% 
+        mutate(empates_emb = sample(Empate, n())) %>% 
+        group_by(empates_emb) %>% 
+        summarise(media_gols = mean(gols)) 
+    
+    media_gols_vitoriosos = gols %>% filter(empates_emb == FALSE) %>% pull(media_gols)
+    media_gols_empates = gols %>% filter(empates_emb == TRUE) %>% pull(media_gols)
+    
+    media_gols_vitoriosos - media_gols_empates
+}
+
+diffs2 = replicate(5000, {theta_emb(data2)})
+
+mean(abs(diffs2) >= abs(theta_diff2(data2, 1:NROW(data2))))
+
 ```
