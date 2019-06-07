@@ -203,6 +203,7 @@ $(document).ready(function () {
 <li><a href="#com-ic-para-a-primeira-pergunta">Com IC para a primeira pergunta</a></li>
 <li><a href="#com-ic-para-a-segunda-pergunta">Com IC para a segunda pergunta</a></li>
 <li><a href="#teste-de-hipotese-para-a-segunda-pergunta">Teste de hipótese para a segunda pergunta</a></li>
+<li><a href="#conclusao">Conclusão:</a></li>
 </ul>
 </div>
 
@@ -336,6 +337,10 @@ diffs2 = replicate(5000, {theta_emb(data2)})
 
 mean(abs(diffs2) &gt;= abs(theta_diff2(data2, 1:NROW(data2))))</code></pre>
 <pre><code>## [1] 0.0018</code></pre>
+</div>
+<div id="conclusao" class="section level2">
+<h2>Conclusão:</h2>
+<p>Para todos os casos tivemos concordâncias entre o teste de hipótese e o IC. E, como esperado, com o intervalo de confiança conseguimos estimar a faixa em que os valores estariam, o que consequentemente nos dá mais informação.</p>
 </div>
 
 

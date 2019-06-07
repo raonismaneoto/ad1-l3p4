@@ -139,3 +139,7 @@ diffs2 = replicate(5000, {theta_emb(data2)})
 mean(abs(diffs2) >= abs(theta_diff2(data2, 1:NROW(data2))))
 
 ```
+
+## Conclusão:
+
+Para todos os casos tivemos concordâncias entre o teste de hipótese e o IC. E, como esperado, com o intervalo de confiança conseguimos estimar a faixa em que os valores estariam, o que consequentemente nos dá mais informação.
